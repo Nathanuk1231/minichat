@@ -3,26 +3,143 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Get Your Firebase UID</title>
+<title>Mini Discord Clone with Admin</title>
+<style>
+  /* Discord-ish dark theme */
+  body {
+    margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #36393f; color: #dcddde; display: flex; height: 100vh;
+  }
+  #sidebar {
+    width: 220px; background: #2f3136; display: flex; flex-direction: column;
+  }
+  #sidebar h2 {
+    text-align: center; padding: 10px 0; border-bottom: 1px solid #202225;
+  }
+  #servers {
+    flex-grow: 1; overflow-y: auto; padding: 10px;
+  }
+  #servers div.server-item {
+    padding: 8px; margin-bottom: 6px; cursor: pointer;
+    background: #202225; border-radius: 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #servers div.server-item:hover {
+    background: #5865f2;
+  }
+  #servers div.server-item.admin-delete {
+    color: #f04747; cursor: pointer;
+  }
+  #main {
+    flex-grow: 1; display: flex; flex-direction: column;
+  }
+  #header {
+    height: 50px; background: #202225; padding: 10px 20px;
+    font-weight: bold; font-size: 1.2em; display: flex; justify-content: space-between; align-items: center;
+  }
+  #chat {
+    flex-grow: 1; overflow-y: auto; padding: 10px 20px;
+  }
+  #chat .message {
+    margin-bottom: 12px; padding: 6px 8px; border-radius: 6px;
+    background: #2f3136; position: relative;
+  }
+  #chat .message.admin-delete {
+    color: #f04747; cursor: pointer;
+    font-weight: bold;
+    position: absolute;
+    right: 6px;
+    top: 6px;
+  }
+  #input-area {
+    background: #40444b; padding: 10px 20px; display: flex;
+  }
+  #input-area input[type=text] {
+    flex-grow: 1; padding: 8px 12px; border-radius: 4px; border: none;
+    font-size: 1em; outline: none;
+    background: #2f3136; color: #dcddde;
+  }
+  #input-area button {
+    margin-left: 10px; background: #5865f2; border: none; color: white;
+    padding: 8px 14px; border-radius: 4px; cursor: pointer;
+    font-weight: bold;
+  }
+  #dm-list {
+    height: 120px; background: #2f3136; overflow-x: auto; display: flex; padding: 10px;
+  }
+  #dm-list div {
+    background: #202225; padding: 8px 12px; margin-right: 10px; border-radius: 6px; cursor: pointer;
+  }
+  #dm-list div:hover {
+    background: #5865f2;
+  }
+  #login {
+    margin: auto; color: white; max-width: 320px; padding: 20px;
+    background: #202225; border-radius: 8px; text-align: center;
+  }
+  #login input {
+    width: 100%; margin-bottom: 12px; padding: 8px; border-radius: 4px;
+    border: none; outline: none; font-size: 1em;
+  }
+  #login button {
+    width: 100%; padding: 10px; border-radius: 4px; background: #5865f2; border: none; color: white;
+    font-weight: bold; cursor: pointer;
+  }
+  #filter-warning {
+    color: #f04747; margin-top: 8px; font-weight: bold; text-align: center;
+  }
+</style>
 </head>
 <body>
-<h2>Login / Register</h2>
-<input type="email" id="email" placeholder="Email" />
-<br />
-<input type="password" id="password" placeholder="Password" />
-<br />
-<button id="login-btn">Login / Register</button>
-<p>Your UID will show here after login:</p>
-<pre id="uid-display">Not logged in</pre>
+
+<div id="login" style="display:none;">
+  <h2>Login or Register</h2>
+  <input type="email" id="email" placeholder="Email" autocomplete="username" />
+  <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
+  <button id="login-btn">Login / Register</button>
+  <p id="login-error" style="color:#f04747;"></p>
+</div>
+
+<div id="app" style="display:none; width:100%; height:100%; display:flex;">
+
+  <div id="sidebar">
+    <h2>Servers</h2>
+    <div id="servers"></div>
+    <div style="padding:10px;">
+      <input type="text" id="new-server-name" placeholder="New server name" style="width:100%; padding:6px; border-radius:4px; border:none; outline:none;" />
+      <button id="create-server-btn" style="width:100%; margin-top:6px; background:#5865f2; border:none; color:white; cursor:pointer; border-radius:4px;">Create Server</button>
+    </div>
+    <h2>DMs</h2>
+    <div id="dm-list"></div>
+    <div style="padding:10px;">
+      <input type="email" id="dm-email" placeholder="DM user email" style="width:100%; padding:6px; border-radius:4px; border:none; outline:none;" />
+      <button id="create-dm-btn" style="width:100%; margin-top:6px; background:#5865f2; border:none; color:white; cursor:pointer; border-radius:4px;">Create DM</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="header">Select a server or DM</div>
+    <div id="chat"></div>
+    <div id="filter-warning"></div>
+    <div id="input-area" style="display:none;">
+      <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" />
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+
+</div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
   import {
-    getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-    onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+    createUserWithEmailAndPassword, signOut
+  } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+  import {
+    getDatabase, ref, push, onValue, remove, get, child
+  } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
-  // Paste your Firebase config here:
+  // YOUR FIREBASE CONFIG:
   const firebaseConfig = {
     apiKey: "AIzaSyDgddDLpa2XSLvzNBzSd1dkkkZ5Kt32axM",
     authDomain: "coolwebsitechat.firebaseapp.com",
@@ -35,48 +152,280 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getDatabase(app);
 
+  // Admin UID you gave me:
+  const ADMIN_UID = "kugkByA4h5U7CIag7gEG8M8L7um1";
+
+  // Simple bad word filter list (expand as you want):
+  const badWords = [
+    "fuck", "shit", "bitch", "asshole", "nigger", "faggot",
+    "cunt", "dick", "piss", "cock", "motherfucker", "damn"
+  ];
+
+  // UTIL: Filter message for bad words:
+  function filterMessage(msg) {
+    let lowered = msg.toLowerCase();
+    for (const bad of badWords) {
+      if (lowered.includes(bad)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // State variables
+  let currentUser = null;
+  let currentChatType = null; // "server" or "dm"
+  let currentChatId = null;   // server ID or DM ID
+  let currentChatName = null; // server name or DM user email
+
+  // UI elements
+  const loginDiv = document.getElementById('login');
+  const appDiv = document.getElementById('app');
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
   const loginBtn = document.getElementById('login-btn');
-  const uidDisplay = document.getElementById('uid-display');
+  const loginError = document.getElementById('login-error');
 
+  const serversDiv = document.getElementById('servers');
+  const createServerBtn = document.getElementById('create-server-btn');
+  const newServerNameInput = document.getElementById('new-server-name');
+
+  const dmListDiv = document.getElementById('dm-list');
+  const createDmBtn = document.getElementById('create-dm-btn');
+  const dmEmailInput = document.getElementById('dm-email');
+
+  const headerDiv = document.getElementById('header');
+  const chatDiv = document.getElementById('chat');
+  const inputArea = document.getElementById('input-area');
+  const messageInput = document.getElementById('message-input');
+  const sendBtn = document.getElementById('send-btn');
+  const filterWarning = document.getElementById('filter-warning');
+
+  // LOGIN / REGISTER
   loginBtn.onclick = () => {
+    loginError.textContent = "";
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
     if (!email || !password) {
-      alert("Please enter email and password");
+      loginError.textContent = "Please enter email and password";
       return;
     }
 
-    // Try sign in first
     signInWithEmailAndPassword(auth, email, password)
-      .then(userCredential => {
-        // Signed in
-        const user = userCredential.user;
-        uidDisplay.textContent = "Logged in! Your UID:\n" + user.uid;
+      .then(() => {
+        // success
       })
-      .catch(error => {
-        // If login failed, try register
+      .catch(err => {
+        // Try register if login fails
         createUserWithEmailAndPassword(auth, email, password)
-          .then(userCredential => {
-            const user = userCredential.user;
-            uidDisplay.textContent = "Registered & logged in! Your UID:\n" + user.uid;
-          })
-          .catch(err => {
-            alert("Login and registration failed: " + err.message);
+          .catch(e => {
+            loginError.textContent = "Login or registration failed: " + e.message;
           });
       });
   };
 
-  // Also update UID display if already logged in (refresh page)
+  // ON AUTH STATE CHANGED
   onAuthStateChanged(auth, user => {
     if (user) {
-      uidDisplay.textContent = "Logged in! Your UID:\n" + user.uid;
+      currentUser = user;
+      loginDiv.style.display = "none";
+      appDiv.style.display = "flex";
+      loadServers();
+      loadDMs();
     } else {
-      uidDisplay.textContent = "Not logged in";
+      currentUser = null;
+      loginDiv.style.display = "block";
+      appDiv.style.display = "none";
+      currentChatType = null;
+      currentChatId = null;
+      currentChatName = null;
+      chatDiv.innerHTML = "";
+      inputArea.style.display = "none";
     }
   });
+
+  // LOAD SERVERS
+  function loadServers() {
+    const serversRef = ref(db, 'servers');
+    onValue(serversRef, snapshot => {
+      serversDiv.innerHTML = "";
+      snapshot.forEach(childSnap => {
+        const id = childSnap.key;
+        const data = childSnap.val();
+        const div = document.createElement('div');
+        div.classList.add('server-item');
+        div.textContent = data.name || "Unnamed Server";
+        div.onclick = () => {
+          openChat("server", id, data.name);
+        };
+        // Show delete button only if admin
+        if (currentUser.uid === ADMIN_UID) {
+          const delBtn = document.createElement('span');
+          delBtn.textContent = "✖";
+          delBtn.title = "Delete server (admin only)";
+          delBtn.classList.add('admin-delete');
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm("Delete server and all messages?")) {
+              remove(ref(db, 'servers/' + id));
+              // Also remove messages in that server
+              remove(ref(db, 'messages/servers/' + id));
+              if (currentChatType === "server" && currentChatId === id) {
+                chatDiv.innerHTML = "";
+                inputArea.style.display = "none";
+                headerDiv.textContent = "Select a server or DM";
+              }
+              loadServers();
+            }
+          };
+          div.appendChild(delBtn);
+        }
+        serversDiv.appendChild(div);
+      });
+    });
+  }
+
+  // CREATE SERVER
+  createServerBtn.onclick = () => {
+    const name = newServerNameInput.value.trim();
+    if (!name) return;
+    const serversRef = ref(db, 'servers');
+    const newServerRef = push(serversRef);
+    newServerRef.set({ name });
+    newServerNameInput.value = "";
+  };
+
+  // LOAD DMs
+  function loadDMs() {
+    const dmsRef = ref(db, `dms/${currentUser.uid}`);
+    onValue(dmsRef, snapshot => {
+      dmListDiv.innerHTML = "";
+      snapshot.forEach(childSnap => {
+        const dmId = childSnap.key;
+        const dmData = childSnap.val();
+        const otherEmail = dmData.withEmail || "Unknown";
+        const div = document.createElement('div');
+        div.textContent = otherEmail;
+        div.onclick = () => {
+          openChat("dm", dmId, otherEmail);
+        };
+        dmListDiv.appendChild(div);
+      });
+    });
+  }
+
+  // CREATE DM
+  createDmBtn.onclick = async () => {
+    const email = dmEmailInput.value.trim().toLowerCase();
+    if (!email) return alert("Enter an email");
+
+    // Find user by email (we must scan users - NOT possible with Firebase RTDB, so we fake with DMs stored by uid)
+    // Here we do a hack: we only allow DM if the email is the current user (can't find other emails without backend).
+    if (email === currentUser.email.toLowerCase()) {
+      alert("You cannot DM yourself!");
+      return;
+    }
+
+    // We'll create DM id from sorted user ids for uniqueness:
+    // But we don't have other user's uid easily without a backend,
+    // So we create a fake DM with email key (this is a limitation)
+    // For a real app, you’d need a backend to map emails to uids securely.
+
+    // Simplified: store DM only from current user side.
+    const dmsRef = ref(db, `dms/${currentUser.uid}`);
+    const newDMRef = push(dmsRef);
+    await newDMRef.set({ withEmail: email });
+
+    dmEmailInput.value = "";
+    loadDMs();
+  };
+
+  // OPEN CHAT (server or DM)
+  function openChat(type, id, name) {
+    currentChatType = type;
+    currentChatId = id;
+    currentChatName = name;
+    headerDiv.textContent = (type === "server" ? "Server: " : "DM with ") + name;
+    chatDiv.innerHTML = "";
+    inputArea.style.display = "flex";
+    loadMessages(type, id);
+  }
+
+  // LOAD MESSAGES
+  function loadMessages(type, id) {
+    const path = type === "server" ? `messages/servers/${id}` : `messages/dms/${currentUser.uid}/${id}`;
+    const messagesRef = ref(db, path);
+    onValue(messagesRef, snapshot => {
+      chatDiv.innerHTML = "";
+      snapshot.forEach(childSnap => {
+        const msgId = childSnap.key;
+        const msg = childSnap.val();
+        const div = document.createElement('div');
+        div.classList.add('message');
+        div.textContent = `${msg.fromEmail}: ${msg.text}`;
+
+        // If admin, show delete button
+        if (currentUser.uid === ADMIN_UID) {
+          const delBtn = document.createElement('span');
+          delBtn.textContent = "✖";
+          delBtn.title = "Delete message (admin only)";
+          delBtn.classList.add('admin-delete');
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm("Delete this message?")) {
+              remove(ref(db, path + "/" + msgId));
+            }
+          };
+          div.appendChild(delBtn);
+        }
+
+        chatDiv.appendChild(div);
+      });
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    });
+  }
+
+  // SEND MESSAGE
+  sendBtn.onclick = () => {
+    const text = messageInput.value.trim();
+    if (!text) return;
+
+    if (filterMessage(text)) {
+      filterWarning.textContent = "Message contains forbidden words.";
+      return;
+    } else {
+      filterWarning.textContent = "";
+    }
+
+    if (!currentChatType || !currentChatId) return;
+
+    const msgData = {
+      fromUid: currentUser.uid,
+      fromEmail: currentUser.email,
+      text,
+      timestamp: Date.now()
+    };
+
+    let messagesRef;
+    if (currentChatType === "server") {
+      messagesRef = ref(db, `messages/servers/${currentChatId}`);
+    } else {
+      messagesRef = ref(db, `messages/dms/${currentUser.uid}/${currentChatId}`);
+    }
+    const newMsgRef = push(messagesRef);
+    newMsgRef.set(msgData);
+
+    messageInput.value = "";
+  };
+
+  // Send on Enter key
+  messageInput.addEventListener('keydown', e => {
+    if (e.key === "Enter") sendBtn.click();
+  });
+
 </script>
+
 </body>
 </html>
