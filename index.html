@@ -5,536 +5,681 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Mini Discord Clone</title>
 <style>
-  :root {
-    --color-bg-light: #f9f9f9;
-    --color-text-light: #222;
-    --color-bg-dark: #23272a;
-    --color-text-dark: #fff;
-    --color-bg-rainbow: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+  /* Reset */
+  * { box-sizing: border-box; }
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: #36393f;
+    color: #dcddde;
+    display: flex; flex-direction: column;
   }
 
+  /* Themes */
   body.light {
-    background-color: var(--color-bg-light);
-    color: var(--color-text-light);
+    background: #fff;
+    color: #2c2f33;
   }
   body.dark {
-    background-color: var(--color-bg-dark);
-    color: var(--color-text-dark);
+    background: #36393f;
+    color: #dcddde;
   }
   body.rainbow {
-    background: var(--color-bg-rainbow);
+    background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
     color: #fff;
   }
 
-  * {
-    box-sizing: border-box;
-  }
-
-  body, html {
-    margin: 0; padding: 0; height: 100vh;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  }
-
-  #app {
-    display: flex; flex-direction: column; height: 100vh;
-  }
-
-  header {
-    background: #2f3136;
-    padding: 10px;
-    display: flex; align-items: center; justify-content: space-between;
-    color: white;
-  }
-
-  #themeSwitcher button {
-    margin-left: 8px;
-    background: none;
-    border: 1px solid #555;
-    color: #ddd;
-    cursor: pointer;
-    padding: 5px 8px;
-    border-radius: 3px;
-  }
-  #themeSwitcher button:hover {
-    background: #555;
-  }
-
+  /* Layout */
   #loginPanel {
-    margin: auto; max-width: 400px; padding: 20px;
-    background: #2f3136; border-radius: 8px;
-    color: white;
+    flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    background: #2f3136;
   }
   #loginPanel input {
-    width: 100%; margin: 10px 0; padding: 8px;
-    border-radius: 5px; border: none;
-    font-size: 16px;
+    margin: 5px 0; padding: 10px; border-radius: 5px; border: none; width: 250px;
   }
   #loginPanel button {
-    width: 100%; padding: 10px;
-    background: #7289da; border: none; border-radius: 5px;
-    font-weight: bold; font-size: 16px;
+    margin-top: 10px;
+    padding: 10px;
+    width: 270px;
+    border: none;
+    border-radius: 5px;
+    background-color: #5865f2;
+    color: white;
+    font-weight: 600;
     cursor: pointer;
   }
-  #loginPanel button:hover {
-    background: #5b6eae;
-  }
   #errorMsg {
-    color: #f04747;
     margin-top: 10px;
+    color: #f04747;
   }
 
   #mainUI {
-    display: flex; flex: 1; height: 100%;
-    background: #2f3136;
-    color: white;
-  }
-
-  #sidebar {
-    width: 280px; background: #202225; padding: 10px;
-    display: flex; flex-direction: column;
-  }
-  #sidebar h2 {
-    margin: 0 0 10px 0; font-weight: 600;
-  }
-  #serverList, #dmList {
-    flex: 1; overflow-y: auto; margin-bottom: 10px;
-  }
-  #serverList button, #dmList button {
-    width: 100%; margin-bottom: 5px;
-    background: #36393f; border: none;
-    padding: 10px;
-    border-radius: 5px;
-    color: white;
-    cursor: pointer;
-    text-align: left;
-  }
-  #serverList button.selected, #dmList button.selected {
-    background: #5865f2;
-  }
-  #newServerBtn, #logoutBtn {
-    margin-top: 10px;
-    background: #5865f2;
-    border: none;
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  #newServerBtn:hover, #logoutBtn:hover {
-    background: #4752c4;
-  }
-
-  #chatArea {
-    flex: 1; display: flex; flex-direction: column; background: #36393f;
-  }
-  #chatHeader {
-    padding: 10px;
-    border-bottom: 1px solid #202225;
-    font-weight: 600;
-    font-size: 18px;
-  }
-  #messages {
+    display: none;
     flex: 1;
-    padding: 10px;
-    overflow-y: auto;
+    height: 100vh;
+    display: flex;
+    background: inherit;
+    color: inherit;
   }
-  .message {
-    padding: 6px 10px;
-    margin-bottom: 6px;
-    border-radius: 5px;
+
+  /* Sidebar: Servers & DMs */
+  #sidebar {
+    width: 220px;
     background: #2f3136;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    padding: 10px;
+    gap: 10px;
+    overflow-y: auto;
   }
-  .message.self {
-    background: #5865f2;
+
+  #sidebar h2 {
+    margin: 0 0 5px 0;
+    font-weight: 600;
+    font-size: 14px;
+    color: #b9bbbe;
+    user-select: none;
   }
-  .message .text {
+
+  .list-section {
     flex: 1;
-    margin-left: 6px;
-    word-break: break-word;
+    overflow-y: auto;
   }
-  .message .username {
-    font-weight: bold;
+
+  #serverList > div, #dmList > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
   }
-  .message button.deleteBtn {
+
+  #serverList button, #dmList button {
+    background: #36393f;
+    border: none;
+    border-radius: 5px;
+    color: #dcddde;
+    padding: 6px 10px;
+    width: 100%;
+    text-align: left;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+  }
+  #serverList button.selected, #dmList button.selected {
+    background-color: #5865f2;
+    color: white;
+    font-weight: 700;
+  }
+  #serverList button:hover, #dmList button:hover {
+    background-color: #40444b;
+  }
+
+  .deleteBtn {
     background: none;
     border: none;
     color: #f04747;
+    font-size: 18px;
+    font-weight: 700;
     cursor: pointer;
-    font-weight: bold;
-    margin-left: 8px;
-    font-size: 16px;
+    padding: 0 6px;
+    user-select: none;
   }
-  #inputArea {
+  .deleteBtn:hover {
+    color: #ff4d4d;
+  }
+
+  #newServerBtn {
+    background-color: #3ba55d;
+    border: none;
+    padding: 8px;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    font-weight: 700;
+    user-select: none;
+  }
+  #newServerBtn:hover {
+    background-color: #2f855a;
+  }
+
+  /* Main chat */
+  #chatArea {
+    flex: 1;
     display: flex;
-    border-top: 1px solid #202225;
+    flex-direction: column;
+    background: #36393f;
   }
+
+  #chatHeader {
+    padding: 15px 20px;
+    font-weight: 700;
+    font-size: 18px;
+    background: #2f3136;
+    border-bottom: 1px solid #202225;
+    user-select: none;
+  }
+
+  #messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .message {
+    margin-bottom: 15px;
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: 7px;
+    background: #2f3136;
+    position: relative;
+    word-wrap: break-word;
+  }
+  .message.self {
+    margin-left: auto;
+    background: #5865f2;
+    color: white;
+  }
+
+  .message .username {
+    font-weight: 700;
+    margin-bottom: 3px;
+    display: block;
+  }
+  .message .text {
+    white-space: pre-wrap;
+  }
+  .message .deleteBtn {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 14px;
+    padding: 0 5px;
+  }
+
+  #inputArea {
+    padding: 15px 20px;
+    border-top: 1px solid #202225;
+    background: #2f3136;
+    display: flex;
+    gap: 10px;
+  }
+
   #inputMessage {
     flex: 1;
+    resize: none;
+    border-radius: 5px;
     border: none;
-    padding: 15px;
-    font-size: 16px;
+    padding: 10px;
+    font-size: 14px;
     background: #40444b;
     color: white;
-    outline: none;
+    font-family: inherit;
+    height: 40px;
   }
+
   #sendBtn {
+    background-color: #5865f2;
+    border: none;
+    color: white;
+    padding: 10px 18px;
+    font-weight: 700;
+    border-radius: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  #sendBtn:hover {
+    background-color: #4752c4;
+  }
+
+  /* Logout and theme buttons top right */
+  #topBar {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+  }
+  #topBar button {
     background: #5865f2;
     border: none;
     color: white;
-    padding: 0 20px;
+    padding: 6px 12px;
+    border-radius: 5px;
     cursor: pointer;
+    font-weight: 700;
+    user-select: none;
   }
-  #sendBtn:hover {
+  #topBar button:hover {
     background: #4752c4;
   }
 
-  /* Scrollbar */
-  #messages::-webkit-scrollbar {
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
     width: 8px;
   }
-  #messages::-webkit-scrollbar-thumb {
-    background: #5865f2;
+  ::-webkit-scrollbar-track {
+    background: #2f3136;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #202225;
     border-radius: 4px;
   }
 </style>
 </head>
 <body class="dark">
-<div id="app">
 
-<header>
-  <div>Mini Discord Clone</div>
-  <div id="themeSwitcher">
-    Theme: 
-    <button data-theme="light">Light</button>
-    <button data-theme="dark">Dark</button>
-    <button data-theme="rainbow">Rainbow</button>
-  </div>
-</header>
-
-<!-- LOGIN PANEL -->
 <div id="loginPanel">
-  <h2>Login or Register</h2>
-  <input id="email" type="email" placeholder="Email" required />
-  <input id="password" type="password" placeholder="Password" required />
+  <h1>Mini Discord Clone</h1>
+  <input id="email" type="email" placeholder="Email" autocomplete="username" />
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
   <button id="loginBtn">Login / Register</button>
   <div id="errorMsg"></div>
 </div>
 
-<!-- MAIN UI -->
-<div id="mainUI" style="display:none;">
+<div id="mainUI">
   <div id="sidebar">
-    <h2>Servers</h2>
-    <div id="serverList"></div>
-    <button id="newServerBtn">+ New Server</button>
-
+    <h2>Servers <button id="newServerBtn" title="Create new server">＋</button></h2>
+    <div id="serverList" class="list-section"></div>
     <h2>Direct Messages</h2>
-    <div id="dmList"></div>
-
-    <button id="logoutBtn">Logout</button>
+    <div id="dmList" class="list-section"></div>
   </div>
 
   <div id="chatArea">
     <div id="chatHeader">Select a server or DM</div>
     <div id="messages"></div>
     <div id="inputArea" style="display:none;">
-      <input id="inputMessage" placeholder="Type a message..." autocomplete="off" />
+      <textarea id="inputMessage" placeholder="Type a message..." rows="1"></textarea>
       <button id="sendBtn">Send</button>
     </div>
   </div>
 </div>
+
+<div id="topBar" style="display:none;">
+  <button id="logoutBtn" title="Logout">Logout</button>
+  <button data-theme="dark">Dark</button>
+  <button data-theme="light">Light</button>
+  <button data-theme="rainbow">Rainbow</button>
 </div>
 
 <script type="module">
-// Firebase SDK imports
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-import { getDatabase, ref, onValue, push, remove } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+  import {
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+  } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+  import {
+    getDatabase,
+    ref,
+    push,
+    onValue,
+    remove,
+    set,
+    update,
+    get,
+    child,
+  } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyDgddDLpa2XSLvzNBzSd1dkkkZ5Kt32axM",
-  authDomain: "coolwebsitechat.firebaseapp.com",
-  databaseURL: "https://coolwebsitechat-default-rtdb.firebaseio.com",
-  projectId: "coolwebsitechat",
-  storageBucket: "coolwebsitechat.firebasestorage.app",
-  messagingSenderId: "341962893234",
-  appId: "1:341962893234:web:c3b9db4848222ef0ef68bb"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app);
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDgddDLpa2XSLvzNBzSd1dkkkZ5Kt32axM",
+    authDomain: "coolwebsitechat.firebaseapp.com",
+    databaseURL: "https://coolwebsitechat-default-rtdb.firebaseio.com",
+    projectId: "coolwebsitechat",
+    storageBucket: "coolwebsitechat.firebasestorage.app",
+    messagingSenderId: "341962893234",
+    appId: "1:341962893234:web:c3b1ca2a1279bce71326ab",
+  };
 
-// Admin UID you gave me
-const ADMIN_UID = "kugkByA4h5U7CIag7gEG8M8L7um1";
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
 
-// Elements
-const loginPanel = document.getElementById("loginPanel");
-const mainUI = document.getElementById("mainUI");
-const errorMsg = document.getElementById("errorMsg");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
+  // Constants
+  const ADMIN_UID = "kugkByA4h5U7CIag7gEG8M8L7um1";
 
-const serverListEl = document.getElementById("serverList");
-const dmListEl = document.getElementById("dmList");
-const newServerBtn = document.getElementById("newServerBtn");
+  // Elements
+  const loginPanel = document.getElementById("loginPanel");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const loginBtn = document.getElementById("loginBtn");
+  const errorMsg = document.getElementById("errorMsg");
 
-const chatHeader = document.getElementById("chatHeader");
-const messagesEl = document.getElementById("messages");
-const inputArea = document.getElementById("inputArea");
-const inputMessage = document.getElementById("inputMessage");
-const sendBtn = document.getElementById("sendBtn");
+  const mainUI = document.getElementById("mainUI");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const topBar = document.getElementById("topBar");
 
-const themeButtons = document.querySelectorAll("#themeSwitcher button");
+  const serverListEl = document.getElementById("serverList");
+  const dmListEl = document.getElementById("dmList");
+  const newServerBtn = document.getElementById("newServerBtn");
 
-let currentUser = null;
-let currentChannel = null; // { type: "server"|"dm", id, name }
-let servers = {};
-let dms = {};
-let messagesListeners = [];
-let profanityWords = ["fuck", "shit", "asshole", "bitch", "cunt", "nigger", "motherfucker", "faggot"];
-// Profanity filter - simple word replacement with stars
-function filterProfanity(text) {
-  let filtered = text;
-  profanityWords.forEach(word => {
-    const re = new RegExp(`\\b${word}\\b`, "gi");
-    filtered = filtered.replace(re, "*".repeat(word.length));
-  });
-  return filtered;
-}
+  const chatHeader = document.getElementById("chatHeader");
+  const messagesEl = document.getElementById("messages");
+  const inputArea = document.getElementById("inputArea");
+  const inputMessage = document.getElementById("inputMessage");
+  const sendBtn = document.getElementById("sendBtn");
 
-// THEME HANDLING
-function applyTheme(theme) {
-  document.body.classList.remove("light", "dark", "rainbow");
-  document.body.classList.add(theme);
-}
-themeButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    applyTheme(btn.dataset.theme);
-  });
-});
+  // State
+  let currentUser = null;
+  let servers = {};
+  let dms = {};
+  let currentChannel = null; // {type:"server"/"dm", id, name, otherUserId for dm}
 
-// AUTH
-loginBtn.onclick = async () => {
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-  if (!email || !password) {
-    errorMsg.textContent = "Please enter email and password.";
-    return;
-  }
-  errorMsg.textContent = "";
-  try {
-    // Try sign in first
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    currentUser = userCredential.user;
-    onUserLoggedIn();
-  } catch (err) {
-    if (err.code === "auth/user-not-found") {
-      // Register new user
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        currentUser = userCredential.user;
-        onUserLoggedIn();
-      } catch (regErr) {
-        errorMsg.textContent = regErr.message;
-      }
-    } else {
-      errorMsg.textContent = err.message;
-    }
-  }
-};
-
-logoutBtn.onclick = () => {
-  signOut(auth);
-};
-
-// WHEN USER LOGS IN
-function onUserLoggedIn() {
-  loginPanel.style.display = "none";
-  mainUI.style.display = "flex";
-  loadServersAndDMs();
-  setupRealtimeListeners();
-  setupUI();
-}
-
-// LOAD SERVERS AND DMs
-function loadServersAndDMs() {
-  // Servers
-  const serversRef = ref(db, "servers");
-  onValue(serversRef, (snapshot) => {
-    servers = snapshot.val() || {};
-    renderServers();
-  });
-
-  // DMs: We define DM channels under "dms" node. A DM channel's id is a sorted concatenation of user UIDs.
-  const dmsRef = ref(db, "dms");
-  onValue(dmsRef, (snapshot) => {
-    dms = snapshot.val() || {};
-    renderDMs();
-  });
-}
-
-// RENDER SERVERS
-function renderServers() {
-  serverListEl.innerHTML = "";
-  Object.entries(servers).forEach(([id, srv]) => {
-    const btn = document.createElement("button");
-    btn.textContent = srv.name || "Unnamed Server";
-    btn.classList.toggle("selected", currentChannel?.type === "server" && currentChannel.id === id);
-    btn.onclick = () => {
-      selectChannel("server", id, srv.name);
-    };
-    serverListEl.appendChild(btn);
-  });
-}
-
-// RENDER DMs
-function renderDMs() {
-  dmListEl.innerHTML = "";
-  Object.entries(dms).forEach(([id, dm]) => {
-    // DM id = uid1_uid2 sorted
-    const otherUid = id.split("_").find(uid => uid !== currentUser.uid);
-    const otherName = dm.name || otherUid;
-    const btn = document.createElement("button");
-    btn.textContent = otherName;
-    btn.classList.toggle("selected", currentChannel?.type === "dm" && currentChannel.id === id);
-    btn.onclick = () => {
-      selectChannel("dm", id, otherName);
-    };
-    dmListEl.appendChild(btn);
-  });
-}
-
-// SELECT CHANNEL
-function selectChannel(type, id, name) {
-  currentChannel = { type, id, name };
-  chatHeader.textContent = (type === "server" ? "Server: " : "DM: ") + name;
-  renderServers();
-  renderDMs();
-  loadMessages();
-}
-
-// LOAD MESSAGES
-function loadMessages() {
-  // Remove old listeners
-  messagesListeners.forEach(unsub => unsub());
-  messagesListeners = [];
-  messagesEl.innerHTML = "";
-
-  if (!currentChannel) return;
-
-  const path = currentChannel.type === "server" ? `messages/servers/${currentChannel.id}` : `messages/dms/${currentChannel.id}`;
-  const messagesRef = ref(db, path);
-
-  const listener = onValue(messagesRef, (snapshot) => {
-    messagesEl.innerHTML = "";
-    const msgs = snapshot.val() || {};
-    Object.entries(msgs).forEach(([msgId, msg]) => {
-      const msgEl = createMessageElement(msgId, msg);
-      messagesEl.appendChild(msgEl);
+  // Profanity filter (simple word replacement)
+  const badWords = [
+    "nigga", "nigger", "blacky", "monkey", "jew",
+    // add more as you want
+  ];
+  function filterMessage(text) {
+    let clean = text;
+    badWords.forEach(w => {
+      const regex = new RegExp(`\\b${w}\\b`, "gi");
+      clean = clean.replace(regex, "[censored]");
     });
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return clean;
+  }
+
+  // --- AUTH --- //
+  loginBtn.onclick = () => {
+    errorMsg.textContent = "";
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!email || !password) {
+      errorMsg.textContent = "Email and password required.";
+      return;
+    }
+    // Try login
+    signInWithEmailAndPassword(auth, email, password)
+      .catch(() => {
+        // If fails, try register
+        createUserWithEmailAndPassword(auth, email, password)
+          .catch(e => errorMsg.textContent = e.message);
+      });
+  };
+
+  logoutBtn.onclick = () => {
+    signOut(auth);
+  };
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      currentUser = user;
+      loginPanel.style.display = "none";
+      mainUI.style.display = "flex";
+      topBar.style.display = "flex";
+      loadServers();
+      loadDMs();
+    } else {
+      currentUser = null;
+      loginPanel.style.display = "flex";
+      mainUI.style.display = "none";
+      topBar.style.display = "none";
+      chatHeader.textContent = "Select a server or DM";
+      messagesEl.innerHTML = "";
+      inputArea.style.display = "none";
+      servers = {};
+      dms = {};
+      currentChannel = null;
+    }
   });
 
-  messagesListeners.push(() => messagesRef.off(listener));
-}
+  // --- SERVERS --- //
+  newServerBtn.onclick = () => {
+    const name = prompt("Enter new server name:");
+    if (name && name.trim()) {
+      const newServerRef = push(ref(db, "servers"));
+      set(newServerRef, { name: name.trim(), createdBy: currentUser.uid });
+    }
+  };
 
-// CREATE MESSAGE ELEMENT
-function createMessageElement(msgId, msg) {
-  const div = document.createElement("div");
-  div.classList.add("message");
-  if (msg.userId === currentUser.uid) div.classList.add("self");
+  function loadServers() {
+    const serversRef = ref(db, "servers");
+    onValue(serversRef, (snapshot) => {
+      servers = snapshot.val() || {};
+      renderServers();
+    });
+  }
 
-  const userSpan = document.createElement("span");
-  userSpan.classList.add("username");
-  userSpan.textContent = msg.username || "Unknown";
+  function renderServers() {
+    serverListEl.innerHTML = "";
+    Object.entries(servers).forEach(([id, srv]) => {
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.alignItems = "center";
+      container.style.justifyContent = "space-between";
 
-  const textSpan = document.createElement("span");
-  textSpan.classList.add("text");
-  textSpan.textContent = filterProfanity(msg.text);
+      const btn = document.createElement("button");
+      btn.textContent = srv.name || "Unnamed Server";
+      btn.style.flex = "1";
+      if (currentChannel?.type === "server" && currentChannel.id === id) btn.classList.add("selected");
+      btn.onclick = () => selectChannel("server", id, srv.name);
+      container.appendChild(btn);
 
-  div.appendChild(userSpan);
-  div.appendChild(textSpan);
-
-  // Show delete button if this user is admin OR the message owner
-  if (msg.userId === currentUser.uid || currentUser.uid === ADMIN_UID) {
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "×";
-    delBtn.title = "Delete message";
-    delBtn.classList.add("deleteBtn");
-    delBtn.onclick = () => {
-      if (confirm("Delete this message?")) {
-        const path = currentChannel.type === "server" ? `messages/servers/${currentChannel.id}/${msgId}` : `messages/dms/${currentChannel.id}/${msgId}`;
-        remove(ref(db, path));
+      if (currentUser.uid === ADMIN_UID) {
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "×";
+        delBtn.title = "Delete server";
+        delBtn.className = "deleteBtn";
+        delBtn.onclick = () => {
+          if (confirm(`Delete server "${srv.name}"? This deletes all its messages too.`)) {
+            remove(ref(db, `servers/${id}`));
+            remove(ref(db, `messages/servers/${id}`));
+            if (currentChannel?.type === "server" && currentChannel.id === id) {
+              currentChannel = null;
+              chatHeader.textContent = "Select a server or DM";
+              messagesEl.innerHTML = "";
+              inputArea.style.display = "none";
+              renderServers();
+            }
+          }
+        };
+        container.appendChild(delBtn);
       }
-    };
-    div.appendChild(delBtn);
+      serverListEl.appendChild(container);
+    });
   }
 
-  return div;
-}
+  // --- DMs --- //
+  // Load list of users except current user for DMs
+  function loadDMs() {
+    // We'll fetch users from all messages (simplified approach)
+    // Alternative: maintain a separate "users" list in DB
+    // For now, show DMs with any user we chatted with or admin (to start)
+    // We'll just show users who sent/received DMs with currentUser or all registered users (simplified for demo)
 
-// SEND MESSAGE
-sendBtn.onclick = sendMessage;
-inputMessage.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
+    // For simplicity, list all users in messages/dms or currentUser only (expand as needed)
+    const usersRef = ref(db, "users");
+    onValue(usersRef, snapshot => {
+      const allUsers = snapshot.val() || {};
+      // Exclude current user
+      const others = Object.entries(allUsers).filter(([uid]) => uid !== currentUser.uid);
+      dms = {};
+      others.forEach(([uid, info]) => {
+        dms[uid] = info;
+      });
+      renderDMs();
+    });
   }
-});
 
-function sendMessage() {
-  const text = inputMessage.value.trim();
-  if (!text || !currentChannel) return;
+  function renderDMs() {
+    dmListEl.innerHTML = "";
+    Object.entries(dms).forEach(([uid, userInfo]) => {
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.alignItems = "center";
+      container.style.justifyContent = "space-between";
 
-  const filteredText = filterProfanity(text);
-  const path = currentChannel.type === "server" ? `messages/servers/${currentChannel.id}` : `messages/dms/${currentChannel.id}`;
-  const messagesRef = ref(db, path);
+      const btn = document.createElement("button");
+      btn.textContent = userInfo.email || "Unknown";
+      btn.style.flex = "1";
+      if (currentChannel?.type === "dm" && currentChannel.id === uid) btn.classList.add("selected");
+      btn.onclick = () => selectChannel("dm", uid, userInfo.email);
+      container.appendChild(btn);
 
-  push(messagesRef, {
-    text: filteredText,
-    userId: currentUser.uid,
-    username: currentUser.email.split("@")[0],
-    timestamp: Date.now()
+      if (currentUser.uid === ADMIN_UID) {
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "×";
+        delBtn.title = "Delete DM history";
+        delBtn.className = "deleteBtn";
+        delBtn.onclick = () => {
+          if (confirm(`Delete DM history with ${userInfo.email}?`)) {
+            remove(ref(db, `messages/dms/${getDMKey(currentUser.uid, uid)}`));
+            if (currentChannel?.type === "dm" && currentChannel.id === uid) {
+              currentChannel = null;
+              chatHeader.textContent = "Select a server or DM";
+              messagesEl.innerHTML = "";
+              inputArea.style.display = "none";
+              renderDMs();
+            }
+          }
+        };
+        container.appendChild(delBtn);
+      }
+
+      dmListEl.appendChild(container);
+    });
+  }
+
+  // Add current user to users list (email stored for DM display)
+  function addCurrentUserToUsers() {
+    const userRef = ref(db, `users/${currentUser.uid}`);
+    set(userRef, { email: currentUser.email });
+  }
+
+  // Helper for DM key (sorted uids for consistent path)
+  function getDMKey(uid1, uid2) {
+    return [uid1, uid2].sort().join("_");
+  }
+
+  // --- CHAT --- //
+  sendBtn.onclick = sendMessage;
+  inputMessage.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   });
 
-  inputMessage.value = "";
-}
-
-// SETUP UI
-function setupUI() {
-  inputArea.style.display = "flex";
-}
-
-// CREATE NEW SERVER
-newServerBtn.onclick = () => {
-  const name = prompt("Enter new server name:");
-  if (!name) return;
-
-  const serversRef = ref(db, "servers");
-  push(serversRef, { name });
-};
-
-// LOGOUT HANDLER
-onAuthStateChanged(auth, user => {
-  if (user) {
-    currentUser = user;
-    onUserLoggedIn();
-  } else {
-    currentUser = null;
-    loginPanel.style.display = "block";
-    mainUI.style.display = "none";
+  function selectChannel(type, id, name) {
+    currentChannel = { type, id, name };
+    chatHeader.textContent = type === "server" ? `# ${name}` : `DM: ${name}`;
+    inputArea.style.display = "flex";
+    messagesEl.innerHTML = "";
+    loadMessages(type, id);
+    renderServers();
+    renderDMs();
   }
-});
 
-function setupRealtimeListeners() {
-  // No extra listeners for now, handled by onValue calls
-}
+  let messagesListener = null;
+  function loadMessages(type, id) {
+    if (messagesListener) messagesListener.off();
 
+    messagesEl.innerHTML = "";
+
+    let messagesRef;
+    if (type === "server") {
+      messagesRef = ref(db, `messages/servers/${id}`);
+    } else {
+      const dmKey = getDMKey(currentUser.uid, id);
+      messagesRef = ref(db, `messages/dms/${dmKey}`);
+    }
+
+    messagesListener = onValue(messagesRef, snapshot => {
+      messagesEl.innerHTML = "";
+      const msgs = snapshot.val() || {};
+      // Sort messages by timestamp
+      const sortedMsgs = Object.entries(msgs).sort((a, b) => a[1].timestamp - b[1].timestamp);
+      sortedMsgs.forEach(([msgId, msg]) => {
+        const msgEl = createMessageElement(msgId, msg);
+        messagesEl.appendChild(msgEl);
+      });
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+  }
+
+  function createMessageElement(msgId, msg) {
+    const div = document.createElement("div");
+    div.classList.add("message");
+    if (msg.uid === currentUser.uid) div.classList.add("self");
+
+    const usernameSpan = document.createElement("span");
+    usernameSpan.className = "username";
+    usernameSpan.textContent = msg.username || "Unknown";
+
+    const textSpan = document.createElement("span");
+    textSpan.className = "text";
+    textSpan.textContent = filterMessage(msg.text);
+
+    div.appendChild(usernameSpan);
+    div.appendChild(textSpan);
+
+    // Show delete if user owns message or is admin
+    if (msg.uid === currentUser.uid || currentUser.uid === ADMIN_UID) {
+      const delBtn = document.createElement("button");
+      delBtn.className = "deleteBtn";
+      delBtn.textContent = "×";
+      delBtn.title = "Delete message";
+      delBtn.onclick = () => {
+        if (confirm("Delete this message?")) {
+          let msgPath;
+          if (currentChannel.type === "server") {
+            msgPath = `messages/servers/${currentChannel.id}/${msgId}`;
+          } else {
+            const dmKey = getDMKey(currentUser.uid, currentChannel.id);
+            msgPath = `messages/dms/${dmKey}/${msgId}`;
+          }
+          remove(ref(db, msgPath));
+        }
+      };
+      div.appendChild(delBtn);
+    }
+
+    return div;
+  }
+
+  function sendMessage() {
+    if (!currentChannel) return;
+    let text = inputMessage.value.trim();
+    if (!text) return;
+
+    text = filterMessage(text);
+
+    const msgData = {
+      text,
+      uid: currentUser.uid,
+      username: currentUser.email.split("@")[0],
+      timestamp: Date.now(),
+    };
+
+    let messagesRef;
+    if (currentChannel.type === "server") {
+      messagesRef = ref(db, `messages/servers/${currentChannel.id}`);
+    } else {
+      const dmKey = getDMKey(currentUser.uid, currentChannel.id);
+      messagesRef = ref(db, `messages/dms/${dmKey}`);
+    }
+
+    push(messagesRef, msgData);
+    inputMessage.value = "";
+  }
+
+  // --- Theme switching ---
+  topBar.querySelectorAll("button[data-theme]").forEach(btn => {
+    btn.onclick = () => {
+      document.body.className = btn.dataset.theme;
+    };
+  });
+
+  // Add current user to users DB for DM list
+  onAuthStateChanged(auth, user => {
+    if (user) addCurrentUserToUsers();
+  });
 </script>
+
 </body>
 </html>
