@@ -1,219 +1,389 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Mini Discord Clone</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-    import { getDatabase, ref, push, set, onChildAdded, get, child } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCBR4luboeizdAY2IUPAxztBY5OxzqvOPE",
-      authDomain: "mini-discord-92075.firebaseapp.com",
-      databaseURL: "https://mini-discord-92075-default-rtdb.firebaseio.com",
-      projectId: "mini-discord-92075",
-      storageBucket: "mini-discord-92075.appspot.com",
-      messagingSenderId: "293790109506",
-      appId: "1:293790109506:web:9ed85bc407ad529df2c2db",
-      measurementId: "G-J3FSRT61NM"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-
-    let currentServer = "general";
-
-    const loginForm = document.getElementById("loginForm");
-    const chatUI = document.getElementById("chatUI");
-    const serverSelect = document.getElementById("serverSelect");
-    const newServerInput = document.getElementById("newServer");
-    const messages = document.getElementById("messages");
-    const messageInput = document.getElementById("messageInput");
-    const sendButton = document.getElementById("sendButton");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const createServerBtn = document.getElementById("createServerBtn");
-    const dmEmailInput = document.getElementById("dmEmail");
-    const dmTextInput = document.getElementById("dmText");
-    const sendDmBtn = document.getElementById("sendDmBtn");
-    const dmBox = document.getElementById("dmBox");
-
-    const loadServers = async () => {
-      const serversSnap = await get(child(ref(db), "servers"));
-      serverSelect.innerHTML = "";
-      if (serversSnap.exists()) {
-        Object.keys(serversSnap.val()).forEach(server => {
-          const opt = document.createElement("option");
-          opt.value = server;
-          opt.textContent = server;
-          serverSelect.appendChild(opt);
-        });
-      }
-    };
-
-    loginForm.onsubmit = async (e) => {
-      e.preventDefault();
-      const email = loginForm.email.value;
-      const pass = loginForm.password.value;
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);
-      } catch (err) {
-        await createUserWithEmailAndPassword(auth, email, pass);
-      }
-    };
-
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        loginForm.style.display = "none";
-        chatUI.style.display = "flex";
-        loadServers();
-        loadMessages();
-        listenForDMs();
-      } else {
-        loginForm.style.display = "flex";
-        chatUI.style.display = "none";
-      }
-    });
-
-    const loadMessages = () => {
-      messages.innerHTML = "";
-      onChildAdded(ref(db, `servers/${currentServer}`), data => {
-        const msg = data.val();
-        const div = document.createElement("div");
-        div.className = "message";
-        div.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
-        messages.appendChild(div);
-      });
-    };
-
-    sendButton.onclick = () => {
-      const msgRef = push(ref(db, `servers/${currentServer}`));
-      set(msgRef, {
-        user: auth.currentUser.email,
-        text: messageInput.value,
-        timestamp: Date.now()
-      });
-      messageInput.value = "";
-    };
-
-    createServerBtn.onclick = () => {
-      const name = newServerInput.value.trim();
-      if (!name) return;
-      set(ref(db, `servers/${name}`), {
-        welcome: { user: "system", text: `Welcome to ${name}` }
-      });
-      newServerInput.value = "";
-      loadServers();
-    };
-
-    serverSelect.onchange = () => {
-      currentServer = serverSelect.value;
-      loadMessages();
-    };
-
-    sendDmBtn.onclick = () => {
-      const to = dmEmailInput.value;
-      const text = dmTextInput.value;
-      if (!to || !text) return;
-      const from = auth.currentUser.email;
-      const key = [from, to].sort().join("--");
-      const refDm = push(ref(db, `dms/${key}`));
-      set(refDm, { from, to, text, timestamp: Date.now() });
-      dmTextInput.value = "";
-    };
-
-    const listenForDMs = () => {
-      const email = auth.currentUser.email;
-      onChildAdded(ref(db, "dms"), snap => {
-        const key = snap.key;
-        if (!key.includes(email)) return;
-        onChildAdded(ref(db, `dms/${key}`), msgSnap => {
-          const msg = msgSnap.val();
-          const div = document.createElement("div");
-          div.className = "dm-message";
-          div.textContent = `DM from ${msg.from}: ${msg.text}`;
-          dmBox.appendChild(div);
-        });
-      });
-    };
-
-    logoutBtn.onclick = () => signOut(auth);
-  </script>
-  <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background-color: #2c2f33;
-      color: #fff;
-      display: flex;
-      height: 100vh;
-    }
-    #loginForm, #chatUI {
-      margin: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      background: #23272a;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #000a;
-    }
-    input, button, select {
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-    input, select {
-      background: #2c2f33;
-      color: white;
-      border: 1px solid #7289da;
-    }
-    button {
-      background: #7289da;
-      color: white;
-      cursor: pointer;
-    }
-    #messages, #dmBox {
-      background: #2c2f33;
-      border: 1px solid #7289da;
-      padding: 10px;
-      height: 200px;
-      overflow-y: auto;
-    }
-    .message, .dm-message {
-      margin-bottom: 5px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mini Discord - coolwebsitechat</title>
+<style>
+  /* Discord-like dark theme colors */
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #36393f;
+    color: #dcddde;
+    display: flex;
+    height: 100vh;
+  }
+  #sidebar {
+    width: 240px;
+    background-color: #2f3136;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  #servers, #dmsList {
+    margin-bottom: 20px;
+  }
+  h2 {
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin: 0 0 10px 0;
+    color: #b9bbbe;
+  }
+  .server, .dmUser {
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .server:hover, .dmUser:hover {
+    background-color: #393c43;
+  }
+  .active {
+    background-color: #5865f2;
+  }
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  #header {
+    background-color: #2f3136;
+    padding: 15px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-bottom: 1px solid #202225;
+  }
+  #messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #36393f;
+  }
+  .message {
+    margin-bottom: 10px;
+  }
+  .message strong {
+    color: #fff;
+  }
+  #inputArea {
+    padding: 10px;
+    background-color: #2f3136;
+    display: flex;
+  }
+  #inputArea input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    outline: none;
+  }
+  #inputArea button {
+    margin-left: 10px;
+    background-color: #5865f2;
+    border: none;
+    padding: 0 15px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #loginForm {
+    margin: auto;
+    background-color: #2f3136;
+    padding: 30px;
+    border-radius: 8px;
+    width: 320px;
+    color: #dcddde;
+    display: flex;
+    flex-direction: column;
+  }
+  #loginForm input {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 4px;
+    border: none;
+    font-size: 1rem;
+  }
+  #loginForm button {
+    background-color: #5865f2;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+  }
+  #newServerBtn {
+    margin-top: auto;
+    background-color: #5865f2;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>
 </head>
 <body>
+
+<div id="sidebar">
+  <h2>Servers</h2>
+  <div id="servers"></div>
+  <button id="newServerBtn">+ New Server</button>
+
+  <h2>Direct Messages</h2>
+  <div id="dmsList"></div>
+</div>
+
+<div id="main">
+  <div id="header">Please log in</div>
+  <div id="messages"></div>
+  <div id="inputArea" style="display:none;">
+    <input id="messageInput" type="text" placeholder="Type a message..." />
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<!-- Login form modal -->
+<div id="loginModal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000a;display:flex;align-items:center;justify-content:center;">
   <form id="loginForm">
     <h2>Login / Register</h2>
-    <input name="email" type="email" placeholder="Email">
-    <input name="password" type="password" placeholder="Password">
-    <button type="submit">Login</button>
+    <input id="email" type="email" placeholder="Email" required />
+    <input id="password" type="password" placeholder="Password" required />
+    <button type="submit">Login / Register</button>
   </form>
+</div>
 
-  <div id="chatUI">
-    <h2>Mini Discord</h2>
-    <select id="serverSelect"></select>
-    <input id="newServer" placeholder="New Server Name">
-    <button id="createServerBtn">Create Server</button>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+  import { getDatabase, ref, push, onChildAdded, onValue, set, get } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
-    <h3>Channel Messages</h3>
-    <div id="messages"></div>
-    <input id="messageInput" placeholder="Type your message">
-    <button id="sendButton">Send</button>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDgddDLpa2XSLvzNBzSd1dkkkZ5Kt32axM",
+    authDomain: "coolwebsitechat.firebaseapp.com",
+    databaseURL: "https://coolwebsitechat-default-rtdb.firebaseio.com",
+    projectId: "coolwebsitechat",
+    storageBucket: "coolwebsitechat.firebasestorage.app",
+    messagingSenderId: "341962893234",
+    appId: "1:341962893234:web:c3b1ca2a1279bce71326ab"
+  };
 
-    <h3>Direct Messages</h3>
-    <input id="dmEmail" placeholder="Recipient Email">
-    <input id="dmText" placeholder="Type a DM">
-    <button id="sendDmBtn">Send DM</button>
-    <div id="dmBox"></div>
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
 
-    <button id="logoutBtn">Logout</button>
-  </div>
+  // UI Elements
+  const loginModal = document.getElementById("loginModal");
+  const loginForm = document.getElementById("loginForm");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+
+  const header = document.getElementById("header");
+  const serversDiv = document.getElementById("servers");
+  const dmsListDiv = document.getElementById("dmsList");
+  const messagesDiv = document.getElementById("messages");
+  const inputArea = document.getElementById("inputArea");
+  const messageInput = document.getElementById("messageInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const newServerBtn = document.getElementById("newServerBtn");
+
+  let currentUser = null;
+  let currentServerId = null;
+  let currentDMUserId = null;
+
+  // Login/Register form submit handler
+  loginForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    try {
+      // Try login
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (loginErr) {
+      // If login fails, try register
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } catch (regErr) {
+        alert("Error: " + regErr.message);
+      }
+    }
+  });
+
+  // On auth state changed
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      currentUser = user;
+      loginModal.style.display = "none";
+      header.textContent = `Logged in as ${user.email} — Servers`;
+      inputArea.style.display = "flex";
+      loadServers();
+      loadDMs();
+    } else {
+      currentUser = null;
+      loginModal.style.display = "flex";
+      header.textContent = "Please log in";
+      inputArea.style.display = "none";
+      serversDiv.innerHTML = "";
+      dmsListDiv.innerHTML = "";
+      messagesDiv.innerHTML = "";
+    }
+  });
+
+  // Load servers list from Firebase
+  function loadServers() {
+    serversDiv.innerHTML = "";
+    const serversRef = ref(db, "servers/");
+    onValue(serversRef, snapshot => {
+      serversDiv.innerHTML = "";
+      snapshot.forEach(child => {
+        const server = child.val();
+        const serverId = child.key;
+        const div = document.createElement("div");
+        div.textContent = server.name;
+        div.className = "server";
+        if (serverId === currentServerId) div.classList.add("active");
+        div.onclick = () => {
+          currentServerId = serverId;
+          currentDMUserId = null;
+          header.textContent = `Server: ${server.name}`;
+          loadMessages();
+          highlightSelection();
+        };
+        serversDiv.appendChild(div);
+      });
+    });
+  }
+
+  // Load direct messages list (simple: all users except current)
+  async function loadDMs() {
+    dmsListDiv.innerHTML = "";
+    const usersRef = ref(db, "users/");
+    onValue(usersRef, snapshot => {
+      dmsListDiv.innerHTML = "";
+      snapshot.forEach(child => {
+        const user = child.val();
+        const userId = child.key;
+        if (userId === currentUser.uid) return; // no DM with self
+        const div = document.createElement("div");
+        div.textContent = user.email || "(no email)";
+        div.className = "dmUser";
+        if (userId === currentDMUserId) div.classList.add("active");
+        div.onclick = () => {
+          currentDMUserId = userId;
+          currentServerId = null;
+          header.textContent = `DM with: ${user.email || "(no email)"}`;
+          loadDMMessages();
+          highlightSelection();
+        };
+        dmsListDiv.appendChild(div);
+      });
+    });
+  }
+
+  // Highlight selected server or DM
+  function highlightSelection() {
+    Array.from(serversDiv.children).forEach(div => {
+      div.classList.toggle("active", div.textContent === header.textContent.replace(/^Server: /, ""));
+    });
+    Array.from(dmsListDiv.children).forEach(div => {
+      div.classList.toggle("active", div.textContent === header.textContent.replace(/^DM with: /, ""));
+    });
+  }
+
+  // Load messages for current server
+  function loadMessages() {
+    messagesDiv.innerHTML = "";
+    if (!currentServerId) return;
+    const messagesRef = ref(db, `messages/${currentServerId}`);
+    onValue(messagesRef, snapshot => {
+      messagesDiv.innerHTML = "";
+      snapshot.forEach(child => {
+        const msg = child.val();
+        const el = document.createElement("div");
+        el.className = "message";
+        el.innerHTML = `<strong>${msg.senderEmail}:</strong> ${msg.text}`;
+        messagesDiv.appendChild(el);
+      });
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+  }
+
+  // Load messages for current DM
+  function loadDMMessages() {
+    messagesDiv.innerHTML = "";
+    if (!currentDMUserId) return;
+    // DM messages stored under 'dms/{user1_user2}', user ids sorted alphabetically
+    const pairKey = [currentUser.uid, currentDMUserId].sort().join("_");
+    const dmRef = ref(db, `dms/${pairKey}`);
+    onValue(dmRef, snapshot => {
+      messagesDiv.innerHTML = "";
+      snapshot.forEach(child => {
+        const msg = child.val();
+        const el = document.createElement("div");
+        el.className = "message";
+        el.innerHTML = `<strong>${msg.senderEmail}:</strong> ${msg.text}`;
+        messagesDiv.appendChild(el);
+      });
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+  }
+
+  // Send message handler
+  sendBtn.onclick = async () => {
+    const text = messageInput.value.trim();
+    if (!text) return;
+    messageInput.value = "";
+
+    if (currentServerId) {
+      // Send to server channel
+      const messagesRef = ref(db, `messages/${currentServerId}`);
+      await push(messagesRef, {
+        senderUid: currentUser.uid,
+        senderEmail: currentUser.email,
+        text,
+        timestamp: Date.now()
+      });
+    } else if (currentDMUserId) {
+      // Send DM
+      const pairKey = [currentUser.uid, currentDMUserId].sort().join("_");
+      const dmRef = ref(db, `dms/${pairKey}`);
+      await push(dmRef, {
+        senderUid: currentUser.uid,
+        senderEmail: currentUser.email,
+        text,
+        timestamp: Date.now()
+      });
+    }
+  };
+
+  // New server creation
+  newServerBtn.onclick = () => {
+    const name = prompt("Enter new server name:");
+    if (!name) return;
+
+    // Create server entry
+    const serversRef = ref(db, "servers/");
+    push(serversRef, {
+      name,
+      ownerUid: currentUser.uid,
+      createdAt: Date.now()
+    });
+  };
+
+  // Save user on login for DM list
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      const usersRef = ref(db, `users/${user.uid}`);
+      set(usersRef, { email: user.email, lastSeen: Date.now() });
+    }
+  });
+
+</script>
 </body>
 </html>
-
