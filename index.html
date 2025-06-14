@@ -3,128 +3,152 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mini Discord - coolwebsitechat</title>
+<title>Mini Discord Clone</title>
 <style>
-  /* Discord-like dark theme colors */
-  body {
-    margin: 0;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  /* Discord-like colors and layout */
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    font-family: "Whitney", "Helvetica Neue", Helvetica, Arial, sans-serif;
     background-color: #36393f;
     color: #dcddde;
     display: flex;
     height: 100vh;
+    overflow: hidden;
   }
   #sidebar {
-    width: 240px;
-    background-color: #2f3136;
+    width: 260px;
+    background: #2f3136;
     display: flex;
     flex-direction: column;
     padding: 10px;
-    overflow-y: auto;
   }
-  #servers, #dmsList {
-    margin-bottom: 20px;
-  }
-  h2 {
-    font-weight: 600;
-    font-size: 1.2rem;
-    margin: 0 0 10px 0;
+  #sidebar h2 {
+    margin: 10px 0 8px 10px;
+    font-weight: 700;
+    font-size: 18px;
     color: #b9bbbe;
   }
-  .server, .dmUser {
-    padding: 8px 12px;
-    margin-bottom: 6px;
-    border-radius: 4px;
+  #serversList, #usersList {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 20px;
+  }
+  .server, .user {
+    padding: 8px 10px;
+    border-radius: 5px;
     cursor: pointer;
+    margin: 4px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
-  .server:hover, .dmUser:hover {
-    background-color: #393c43;
+  .server:hover, .user:hover {
+    background: #40444b;
   }
-  .active {
-    background-color: #5865f2;
+  .server.selected, .user.selected {
+    background: #5865f2;
+    color: white;
   }
   #main {
     flex: 1;
     display: flex;
     flex-direction: column;
+    background-color: #36393f;
   }
   #header {
-    background-color: #2f3136;
-    padding: 15px;
-    font-size: 1.25rem;
-    font-weight: 700;
-    border-bottom: 1px solid #202225;
+    padding: 15px 20px;
+    border-bottom: 1px solid #2f3136;
+    font-weight: 600;
+    font-size: 20px;
+    color: #fff;
   }
   #messages {
     flex: 1;
-    padding: 15px;
     overflow-y: auto;
-    background-color: #36393f;
+    padding: 15px 20px;
   }
   .message {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
-  .message strong {
-    color: #fff;
+  .message .sender {
+    font-weight: 700;
+    color: #7289da;
+  }
+  .message .text {
+    margin-left: 8px;
+    color: #dcddde;
   }
   #inputArea {
-    padding: 10px;
-    background-color: #2f3136;
     display: flex;
+    padding: 10px 20px;
+    border-top: 1px solid #2f3136;
   }
-  #inputArea input {
+  #messageInput {
     flex: 1;
     padding: 10px;
-    border: none;
     border-radius: 4px;
-    font-size: 1rem;
+    border: none;
+    font-size: 14px;
+    background-color: #40444b;
+    color: #dcddde;
+  }
+  #messageInput:focus {
     outline: none;
   }
-  #inputArea button {
+  #sendBtn {
     margin-left: 10px;
+    padding: 10px 16px;
     background-color: #5865f2;
     border: none;
-    padding: 0 15px;
     border-radius: 4px;
     color: white;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
   }
-  #loginForm {
-    margin: auto;
-    background-color: #2f3136;
-    padding: 30px;
-    border-radius: 8px;
-    width: 320px;
-    color: #dcddde;
-    display: flex;
-    flex-direction: column;
+  #sendBtn:disabled {
+    background-color: #40444b;
+    cursor: not-allowed;
   }
-  #loginForm input {
-    margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 4px;
-    border: none;
-    font-size: 1rem;
-  }
-  #loginForm button {
-    background-color: #5865f2;
-    border: none;
-    padding: 10px;
-    border-radius: 4px;
-    font-weight: 700;
+  button.deleteBtn {
+    background-color: #f04747;
     color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
     cursor: pointer;
+    font-size: 12px;
   }
-  #newServerBtn {
-    margin-top: auto;
+  #createServerForm, #loginForm {
+    margin: 10px 0;
+  }
+  #createServerInput, #emailInput, #passwordInput {
+    padding: 8px;
+    width: calc(100% - 20px);
+    margin-bottom: 8px;
+    border-radius: 4px;
+    border: none;
+  }
+  #createServerBtn, #loginBtn, #logoutBtn {
     background-color: #5865f2;
+    color: white;
     border: none;
     padding: 8px 12px;
     border-radius: 4px;
-    color: white;
-    font-weight: 700;
     cursor: pointer;
+    font-weight: 600;
+  }
+  #logoutBtn {
+    margin-top: 10px;
+    width: 100%;
+  }
+  #loginForm {
+    padding: 20px;
+    background: #2f3136;
+    border-radius: 8px;
+  }
+  #errorMsg {
+    color: #f04747;
+    margin-bottom: 10px;
   }
 </style>
 </head>
@@ -132,37 +156,39 @@
 
 <div id="sidebar">
   <h2>Servers</h2>
-  <div id="servers"></div>
-  <button id="newServerBtn">+ New Server</button>
+  <div id="serversList"></div>
+  <form id="createServerForm">
+    <input type="text" id="createServerInput" placeholder="New server name" required />
+    <button type="submit" id="createServerBtn">Create Server</button>
+  </form>
 
-  <h2>Direct Messages</h2>
-  <div id="dmsList"></div>
+  <h2>Users</h2>
+  <div id="usersList"></div>
+  <button id="logoutBtn" style="display:none;">Logout</button>
 </div>
 
 <div id="main">
-  <div id="header">Please log in</div>
+  <div id="header">Please log in to start chatting</div>
   <div id="messages"></div>
   <div id="inputArea" style="display:none;">
-    <input id="messageInput" type="text" placeholder="Type a message..." />
-    <button id="sendBtn">Send</button>
+    <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" />
+    <button id="sendBtn" disabled>Send</button>
   </div>
-</div>
 
-<!-- Login form modal -->
-<div id="loginModal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000a;display:flex;align-items:center;justify-content:center;">
-  <form id="loginForm">
-    <h2>Login / Register</h2>
-    <input id="email" type="email" placeholder="Email" required />
-    <input id="password" type="password" placeholder="Password" required />
-    <button type="submit">Login / Register</button>
-  </form>
+  <div id="loginForm">
+    <div id="errorMsg"></div>
+    <input type="email" id="emailInput" placeholder="Email" required />
+    <input type="password" id="passwordInput" placeholder="Password" required />
+    <button id="loginBtn">Login / Register</button>
+  </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+  import { getDatabase, ref, push, onValue, set, remove } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-  import { getDatabase, ref, push, onChildAdded, onValue, set, get } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
+  // Your Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyDgddDLpa2XSLvzNBzSd1dkkkZ5Kt32axM",
     authDomain: "coolwebsitechat.firebaseapp.com",
@@ -174,174 +200,266 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
   const db = getDatabase(app);
+  const auth = getAuth(app);
 
-  // UI Elements
-  const loginModal = document.getElementById("loginModal");
-  const loginForm = document.getElementById("loginForm");
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
-
-  const header = document.getElementById("header");
-  const serversDiv = document.getElementById("servers");
-  const dmsListDiv = document.getElementById("dmsList");
+  // DOM Elements
+  const serversList = document.getElementById("serversList");
+  const usersList = document.getElementById("usersList");
   const messagesDiv = document.getElementById("messages");
-  const inputArea = document.getElementById("inputArea");
+  const header = document.getElementById("header");
   const messageInput = document.getElementById("messageInput");
   const sendBtn = document.getElementById("sendBtn");
-  const newServerBtn = document.getElementById("newServerBtn");
+  const createServerForm = document.getElementById("createServerForm");
+  const createServerInput = document.getElementById("createServerInput");
+  const loginForm = document.getElementById("loginForm");
+  const emailInput = document.getElementById("emailInput");
+  const passwordInput = document.getElementById("passwordInput");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const errorMsg = document.getElementById("errorMsg");
+  const inputArea = document.getElementById("inputArea");
 
   let currentUser = null;
   let currentServerId = null;
   let currentDMUserId = null;
+  let servers = {};
+  let users = {};
 
-  // Login/Register form submit handler
-  loginForm.addEventListener("submit", async e => {
+  // Basic profanity list - customize this
+  const bannedWords = [
+    "badword1", "badword2", "somecurse", "racistword1", "racistword2"
+  ];
+  function containsBannedWords(text) {
+    const lowered = text.toLowerCase();
+    return bannedWords.some(word => lowered.includes(word));
+  }
+
+  // Listen for auth state changes
+  onAuthStateChanged(auth, user => {
+    currentUser = user;
+    if(user) {
+      loginForm.style.display = "none";
+      logoutBtn.style.display = "block";
+      inputArea.style.display = "flex";
+      loadUsers();
+      loadServers();
+      header.textContent = "Select a server or user to start chatting";
+    } else {
+      loginForm.style.display = "block";
+      logoutBtn.style.display = "none";
+      inputArea.style.display = "none";
+      serversList.innerHTML = "";
+      usersList.innerHTML = "";
+      messagesDiv.innerHTML = "";
+      header.textContent = "Please log in to start chatting";
+      currentServerId = null;
+      currentDMUserId = null;
+    }
+  });
+
+  // Login or Register user
+  loginBtn.onclick = async (e) => {
     e.preventDefault();
+    errorMsg.textContent = "";
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
+    if(!email || !password) return;
 
     try {
-      // Try login
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (loginErr) {
-      // If login fails, try register
-      try {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } catch (regErr) {
-        alert("Error: " + regErr.message);
+    } catch (error) {
+      if(error.code === "auth/user-not-found") {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+        } catch (e) {
+          errorMsg.textContent = e.message;
+          return;
+        }
+      } else {
+        errorMsg.textContent = error.message;
+        return;
       }
     }
-  });
+  };
 
-  // On auth state changed
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      currentUser = user;
-      loginModal.style.display = "none";
-      header.textContent = `Logged in as ${user.email} — Servers`;
-      inputArea.style.display = "flex";
-      loadServers();
-      loadDMs();
-    } else {
-      currentUser = null;
-      loginModal.style.display = "flex";
-      header.textContent = "Please log in";
-      inputArea.style.display = "none";
-      serversDiv.innerHTML = "";
-      dmsListDiv.innerHTML = "";
-      messagesDiv.innerHTML = "";
-    }
-  });
+  logoutBtn.onclick = async () => {
+    await signOut(auth);
+  };
 
-  // Load servers list from Firebase
-  function loadServers() {
-    serversDiv.innerHTML = "";
-    const serversRef = ref(db, "servers/");
-    onValue(serversRef, snapshot => {
-      serversDiv.innerHTML = "";
-      snapshot.forEach(child => {
-        const server = child.val();
-        const serverId = child.key;
+  // Load all users (except current user)
+  function loadUsers() {
+    const usersRef = ref(db, "users");
+    onValue(usersRef, snapshot => {
+      usersList.innerHTML = "";
+      users = snapshot.val() || {};
+      // Make sure current user is added
+      if(currentUser && !users[currentUser.uid]) {
+        set(ref(db, `users/${currentUser.uid}`), { email: currentUser.email });
+      }
+      Object.entries(users).forEach(([uid, user]) => {
+        if(uid === currentUser.uid) return;
         const div = document.createElement("div");
-        div.textContent = server.name;
-        div.className = "server";
-        if (serverId === currentServerId) div.classList.add("active");
+        div.className = "user";
+        div.textContent = user.email;
         div.onclick = () => {
-          currentServerId = serverId;
-          currentDMUserId = null;
-          header.textContent = `Server: ${server.name}`;
-          loadMessages();
-          highlightSelection();
+          selectDM(uid, user.email);
         };
-        serversDiv.appendChild(div);
+        if(currentDMUserId === uid) div.classList.add("selected");
+        usersList.appendChild(div);
       });
     });
   }
 
-  // Load direct messages list (simple: all users except current)
-  async function loadDMs() {
-    dmsListDiv.innerHTML = "";
-    const usersRef = ref(db, "users/");
-    onValue(usersRef, snapshot => {
-      dmsListDiv.innerHTML = "";
-      snapshot.forEach(child => {
-        const user = child.val();
-        const userId = child.key;
-        if (userId === currentUser.uid) return; // no DM with self
+  // Load servers
+  function loadServers() {
+    const serversRef = ref(db, "servers");
+    onValue(serversRef, snapshot => {
+      serversList.innerHTML = "";
+      servers = snapshot.val() || {};
+      Object.entries(servers).forEach(([serverId, server]) => {
         const div = document.createElement("div");
-        div.textContent = user.email || "(no email)";
-        div.className = "dmUser";
-        if (userId === currentDMUserId) div.classList.add("active");
+        div.className = "server";
+        div.textContent = server.name;
+        if(currentServerId === serverId) div.classList.add("selected");
+
+        // Delete button if owner
+        if(server.ownerUid === currentUser.uid) {
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Delete";
+          delBtn.className = "deleteBtn";
+          delBtn.onclick = async (e) => {
+            e.stopPropagation();
+            if(confirm(`Delete server "${server.name}"? This cannot be undone.`)) {
+              await remove(ref(db, `servers/${serverId}`));
+              await remove(ref(db, `messages/${serverId}`));
+              if(currentServerId === serverId) {
+                currentServerId = null;
+                messagesDiv.innerHTML = "";
+                header.textContent = "Select a server or user to start chatting";
+              }
+            }
+          };
+          div.appendChild(delBtn);
+        }
+
         div.onclick = () => {
-          currentDMUserId = userId;
-          currentServerId = null;
-          header.textContent = `DM with: ${user.email || "(no email)"}`;
-          loadDMMessages();
-          highlightSelection();
+          currentServerId = serverId;
+          currentDMUserId = null;
+          highlightSelected();
+          listenToServerMessages(serverId);
+          header.textContent = `# ${server.name}`;
         };
-        dmsListDiv.appendChild(div);
+        serversList.appendChild(div);
       });
     });
   }
 
   // Highlight selected server or DM
-  function highlightSelection() {
-    Array.from(serversDiv.children).forEach(div => {
-      div.classList.toggle("active", div.textContent === header.textContent.replace(/^Server: /, ""));
+  function highlightSelected() {
+    // Servers
+    serversList.childNodes.forEach(div => {
+      if(div.classList.contains("server")) {
+        div.classList.toggle("selected", div.textContent === (servers[currentServerId]?.name));
+      }
     });
-    Array.from(dmsListDiv.children).forEach(div => {
-      div.classList.toggle("active", div.textContent === header.textContent.replace(/^DM with: /, ""));
+    // Users
+    usersList.childNodes.forEach(div => {
+      if(div.classList.contains("user")) {
+        div.classList.toggle("selected", users[ currentDMUserId ]?.email === div.textContent);
+      }
     });
   }
 
-  // Load messages for current server
-  function loadMessages() {
+  // Listen to messages in a server
+  let serverMessagesListener = null;
+  function listenToServerMessages(serverId) {
+    if(serverMessagesListener) serverMessagesListener();
     messagesDiv.innerHTML = "";
-    if (!currentServerId) return;
-    const messagesRef = ref(db, `messages/${currentServerId}`);
-    onValue(messagesRef, snapshot => {
+    const messagesRef = ref(db, `messages/${serverId}`);
+    serverMessagesListener = onValue(messagesRef, snapshot => {
       messagesDiv.innerHTML = "";
-      snapshot.forEach(child => {
-        const msg = child.val();
-        const el = document.createElement("div");
-        el.className = "message";
-        el.innerHTML = `<strong>${msg.senderEmail}:</strong> ${msg.text}`;
-        messagesDiv.appendChild(el);
+      const messages = snapshot.val() || {};
+      Object.values(messages).forEach(msg => {
+        const div = document.createElement("div");
+        div.className = "message";
+        const senderSpan = document.createElement("span");
+        senderSpan.className = "sender";
+        senderSpan.textContent = msg.senderEmail || "Unknown";
+        const textSpan = document.createElement("span");
+        textSpan.className = "text";
+        textSpan.textContent = ": " + msg.text;
+        div.appendChild(senderSpan);
+        div.appendChild(textSpan);
+        messagesDiv.appendChild(div);
       });
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
   }
 
-  // Load messages for current DM
-  function loadDMMessages() {
+  // DMs
+  let dmMessagesListener = null;
+  function selectDM(uid, email) {
+    currentDMUserId = uid;
+    currentServerId = null;
+    highlightSelected();
+    header.textContent = `DM: ${email}`;
+    if(dmMessagesListener) dmMessagesListener();
     messagesDiv.innerHTML = "";
-    if (!currentDMUserId) return;
-    // DM messages stored under 'dms/{user1_user2}', user ids sorted alphabetically
-    const pairKey = [currentUser.uid, currentDMUserId].sort().join("_");
+    const pairKey = [currentUser.uid, uid].sort().join("_");
     const dmRef = ref(db, `dms/${pairKey}`);
-    onValue(dmRef, snapshot => {
+    dmMessagesListener = onValue(dmRef, snapshot => {
       messagesDiv.innerHTML = "";
-      snapshot.forEach(child => {
-        const msg = child.val();
-        const el = document.createElement("div");
-        el.className = "message";
-        el.innerHTML = `<strong>${msg.senderEmail}:</strong> ${msg.text}`;
-        messagesDiv.appendChild(el);
+      const messages = snapshot.val() || {};
+      Object.values(messages).forEach(msg => {
+        const div = document.createElement("div");
+        div.className = "message";
+        const senderSpan = document.createElement("span");
+        senderSpan.className = "sender";
+        senderSpan.textContent = msg.senderEmail || "Unknown";
+        const textSpan = document.createElement("span");
+        textSpan.className = "text";
+        textSpan.textContent = ": " + msg.text;
+        div.appendChild(senderSpan);
+        div.appendChild(textSpan);
+        messagesDiv.appendChild(div);
       });
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
   }
 
-  // Send message handler
+  // Create new server
+  createServerForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const name = createServerInput.value.trim();
+    if(!name) return;
+    const newServerRef = push(ref(db, "servers"));
+    await set(newServerRef, {
+      name,
+      ownerUid: currentUser.uid
+    });
+    createServerInput.value = "";
+  };
+
+  // Send message button state
+  messageInput.addEventListener("input", () => {
+    sendBtn.disabled = !messageInput.value.trim();
+  });
+
+  // Send message
   sendBtn.onclick = async () => {
     const text = messageInput.value.trim();
     if (!text) return;
+
+    if (containsBannedWords(text)) {
+      alert("Your message contains inappropriate language and was blocked.");
+      return;
+    }
+
     messageInput.value = "";
+    sendBtn.disabled = true;
 
     if (currentServerId) {
-      // Send to server channel
       const messagesRef = ref(db, `messages/${currentServerId}`);
       await push(messagesRef, {
         senderUid: currentUser.uid,
@@ -350,7 +468,6 @@
         timestamp: Date.now()
       });
     } else if (currentDMUserId) {
-      // Send DM
       const pairKey = [currentUser.uid, currentDMUserId].sort().join("_");
       const dmRef = ref(db, `dms/${pairKey}`);
       await push(dmRef, {
@@ -359,31 +476,10 @@
         text,
         timestamp: Date.now()
       });
+    } else {
+      alert("Select a server or user to send messages.");
     }
   };
-
-  // New server creation
-  newServerBtn.onclick = () => {
-    const name = prompt("Enter new server name:");
-    if (!name) return;
-
-    // Create server entry
-    const serversRef = ref(db, "servers/");
-    push(serversRef, {
-      name,
-      ownerUid: currentUser.uid,
-      createdAt: Date.now()
-    });
-  };
-
-  // Save user on login for DM list
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      const usersRef = ref(db, `users/${user.uid}`);
-      set(usersRef, { email: user.email, lastSeen: Date.now() });
-    }
-  });
-
 </script>
 </body>
 </html>
